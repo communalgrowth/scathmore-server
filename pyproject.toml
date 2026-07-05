@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scathmore-server"
+version = "0.1.0"
+authors = [
+  { name="Nikolaos Chatzikonstantinou", email="nchatz314@gmail.com" },
+]
+description = "Server for the Scathmore game."
+readme = "README.txt"
+license = {file = "COPYING"}
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "litestar[standard, sqlalchemy] >= 2.16",
+    "psycopg[binary]",
+    "python-dotenv >= 1.2.2",
+]
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-mock",
+    "pytest-xdist",
+]
+dev = [
+    "black",
+]
+
+[project.urls]
+Homepage = "https://github.com/communalgrowth/scathmore-server"
+Issues = "https://github.com/communalgrowth/scathmore-server/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -m 'not test_slow'"
+testpaths = [
+    "tests",
+]
+markers = [
+    "test_slow: test is slow."
+]
