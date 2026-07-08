@@ -51,6 +51,10 @@ class MyController(Controller):
         # results = await search_documents(Session, username)
         pass
 
+    @get("/scathmore/thunderball/v1/highscore")
+    async def highscore_lander(self) -> str:
+        return "This is the highscore lander page."
+
     @get("/")
     async def hello(self) -> str:
         return "This is the Scathmore server."
