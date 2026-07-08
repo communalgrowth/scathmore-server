@@ -9,5 +9,5 @@ This is the Scathmore server.
 Use
 
 #+begin_src sh
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --port 8080
 #+end_src
