@@ -72,11 +72,9 @@ class MyController(Controller):
         )
         # TODO:
         # 1. The username should be looked up; if it does not exist,
-        # an entry should be created for it.
-        # 2. If the score ties with an entry, it shouldn't be
-        # re-entered due to the UNIQUE CONSTRAINT. (Or that constraint
-        # should be removed from the table schema...)
-        # 3. The path should be validated to be a correct solution.
+        # an entry should be created for it. Currently we assume that
+        # all usernames are 'astra', i.e. username_id=1.
+        # 2. The path should be validated to be a correct solution.
         async with Session() as session:
             async with session.begin():
                 result = await session.execute(
@@ -86,22 +84,24 @@ class MyController(Controller):
                         (username_id, p_width, p_height, p_ballno, score)
                         VALUES
                         (:username_id, :p_width, :p_height, :p_ballno, :score)
+                        ON CONFLICT (p_width, p_height, p_ballno, score) DO NOTHING
                         RETURNING id
                         """
                     ),
                     score_entry,
                 )
-                row_id = result.scalar_one()
-                payload_entry = dict(id=row_id, payload=data.path.encode("utf-8"))
-                await session.execute(
-                    text(
-                        """
-                        INSERT INTO thunderball.payloads (id, payload)
-                        VALUES (:id, :payload)
-                        """
-                    ),
-                    payload_entry,
-                )
+                row_id = result.scalar_one_or_none()
+                if row_id is not None:
+                    payload_entry = dict(id=row_id, payload=data.path.encode("utf-8"))
+                    await session.execute(
+                        text(
+                            """
+                            INSERT INTO thunderball.payloads (id, payload)
+                            VALUES (:id, :payload)
+                            """
+                        ),
+                        payload_entry,
+                    )
 
     @get("/scathmore/thunderball/v1/highscore")
     async def highscore_lander(self, state: State) -> list[ThunderballScore]:
