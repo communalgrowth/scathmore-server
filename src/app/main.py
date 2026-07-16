@@ -24,11 +24,21 @@ from litestar.exceptions import HTTPException
 from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR
 from litestar.params import Parameter
 
+from pydantic import BaseModel
+
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+class ThunderballData(BaseModel):
+    balls: list[tuple[int, int]]
+    cols: int
+    path: str
+    rows: int
 
 
 async def generic_exception_handler(_: Request, exc: Exception) -> Response:
@@ -44,20 +54,47 @@ async def generic_exception_handler(_: Request, exc: Exception) -> Response:
 
 class MyController(Controller):
     @post("/scathmore/thunderball/v1/highscore")
-    async def score(
-        self, state: State, username: str = Parameter(default="", max_length=5)
-    ) -> None:
-        # Session = async_sessionmaker(bind=state.engine)
-        # results = await search_documents(Session, username)
-        pass
+    async def score(self, state: State, data: ThunderballData) -> None:
+        Session = async_sessionmaker(bind=state.engine)
+        score_entry = dict(
+            username_id=1,
+            p_width=data.cols,
+            p_height=data.rows,
+            p_ballno=len(data.balls),
+            score=len(data.path),
+        )
+        # TODO:
+        # 1. The username should be looked up; if it does not exist,
+        # an entry should be created for it.
+        async with Session() as session:
+            async with session.begin():
+                result = await session.execute(
+                    text(
+                        """
+                        INSERT INTO thunderball.scores
+                        (username_id, p_width, p_height, p_ballno, score)
+                        VALUES
+                        (:username_id, :p_width, :p_height, :p_ballno, :score)
+                        RETURNING id
+                        """
+                    ),
+                    score_entry,
+                )
+                row_id = result.scalar_one()
+                payload_entry = dict(id=row_id, payload=data.path.encode("utf-8"))
+                await session.execute(
+                    text(
+                        """
+                        INSERT INTO thunderball.payloads (id, payload)
+                        VALUES (:id, :payload)
+                        """
+                    ),
+                    payload_entry,
+                )
 
     @get("/scathmore/thunderball/v1/highscore")
     async def highscore_lander(self) -> str:
         return "This is the highscore lander page."
-
-    @get("/")
-    async def hello(self) -> str:
-        return "This is the Scathmore server."
 
 
 @asynccontextmanager
