@@ -20,6 +20,7 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 from litestar import Controller, Litestar, MediaType, Request, Response, get, post
+from litestar.config.cors import CORSConfig
 from litestar.datastructures import State
 from litestar.exceptions import HTTPException
 from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR
@@ -142,9 +143,21 @@ async def db_connection(app: Litestar) -> AsyncGenerator[None, None]:
         await engine.dispose()
 
 
+# See <https://itch.io/t/3099694/notice-for-html-game-devs-upcoming-change-to-cdn-domain>.
+cors_config = CORSConfig(
+    allow_origins=[
+        "https://html.itch.zone",
+        "https://html-classic.itch.zone",
+        "https://nchatz314.itch.io",
+    ],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
+)
+
 app = Litestar(
     route_handlers=[MyController],
     openapi_config=None,
+    cors_config=cors_config,
     exception_handlers={
         HTTPException: generic_exception_handler,
     },
