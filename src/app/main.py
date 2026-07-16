@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from datetime import date, datetime
 import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
@@ -41,6 +42,12 @@ class ThunderballData(BaseModel):
     rows: int
 
 
+class ThunderballScore(BaseModel):
+    score: int
+    name: str
+    created_at: date
+
+
 async def generic_exception_handler(_: Request, exc: Exception) -> Response:
     """Default handler for exceptions subclassed from HTTPException."""
     status_code = getattr(exc, "status_code", HTTP_500_INTERNAL_SERVER_ERROR)
@@ -66,6 +73,10 @@ class MyController(Controller):
         # TODO:
         # 1. The username should be looked up; if it does not exist,
         # an entry should be created for it.
+        # 2. If the score ties with an entry, it shouldn't be
+        # re-entered due to the UNIQUE CONSTRAINT. (Or that constraint
+        # should be removed from the table schema...)
+        # 3. The path should be validated to be a correct solution.
         async with Session() as session:
             async with session.begin():
                 result = await session.execute(
@@ -93,8 +104,26 @@ class MyController(Controller):
                 )
 
     @get("/scathmore/thunderball/v1/highscore")
-    async def highscore_lander(self) -> str:
-        return "This is the highscore lander page."
+    async def highscore_lander(self, state: State) -> list[ThunderballScore]:
+        Session = async_sessionmaker(bind=state.engine)
+        async with Session() as session:
+            result = await session.execute(
+                text(
+                    """
+                    SELECT score, name, created_at
+                    FROM thunderball.scores
+                    JOIN usernames
+                    ON thunderball.scores.username_id = usernames.id
+                    ORDER BY thunderball.scores.score ASC
+                    LIMIT 5;
+                    """
+                )
+            )
+        scores = [
+            ThunderballScore(score=row[0], name=row[1], created_at=row[2].date())
+            for row in result
+        ]
+        return scores
 
 
 @asynccontextmanager
