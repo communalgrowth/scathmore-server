@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import date, datetime
+from datetime import date
 import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
@@ -23,7 +23,6 @@ from litestar import Controller, Litestar, MediaType, Request, Response, get, po
 from litestar.datastructures import State
 from litestar.exceptions import HTTPException
 from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR
-from litestar.params import Parameter
 
 from pydantic import BaseModel
 
